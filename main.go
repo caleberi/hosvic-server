@@ -23,6 +23,7 @@ import (
 const (
 	rtcpPLIInterval = time.Second * 1
 	ngrokApiKey     = "1Y1BMqNsKVP9a1talr739pg9ELl_4FG2qfAcY1AdqCGnbXxra"
+	local           = false
 )
 
 // Sdp represent session description protocol describe media communication sessions
@@ -137,24 +138,30 @@ func main() {
 
 	}(app)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	if local {
+		ctx, cancel := context.WithCancel(context.Background())
 
-	defer cancel()
+		defer cancel()
 
-	tunnel, err := nk.Listen(ctx, nkcfg.HTTPEndpoint(
-		nkcfg.WithCompression(),
-		nkcfg.WithScheme(nkcfg.SchemeHTTP),
-		nkcfg.WithScheme(nkcfg.SchemeHTTPS),
-	), nk.WithAuthtoken(ngrokApiKey))
+		tunnel, err := nk.Listen(ctx, nkcfg.HTTPEndpoint(
+			nkcfg.WithCompression(),
+			nkcfg.WithScheme(nkcfg.SchemeHTTP),
+			nkcfg.WithScheme(nkcfg.SchemeHTTPS),
+		), nk.WithAuthtoken(ngrokApiKey))
 
-	if err != nil {
-		app.ErrorLog.Fatalln(err)
-	}
+		if err != nil {
+			app.ErrorLog.Fatalln(err)
+		}
 
-	log.Printf("Created tunnel for server on [%s]", tunnel.URL())
+		log.Printf("Created tunnel for server on [%s]", tunnel.URL())
 
-	if err := app.Serve(tunnel); errors.Is(err, http.ErrServerClosed) {
-		app.ErrorLog.Fatalln(err)
+		if err := app.Serve(tunnel); errors.Is(err, http.ErrServerClosed) {
+			app.ErrorLog.Fatalln(err)
+		}
+	} else {
+		if err := app.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
+			app.ErrorLog.Fatalln(err)
+		}
 	}
 
 }
